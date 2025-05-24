@@ -60,12 +60,12 @@ async function testAPI() {
         console.log('\n5. Testing user registration...');
         try {
             const registerResponse = await axios.post(`${BASE_URL}/register`, {
-                username: 'testuser',
-                firstname: 'Test',
-                lastname: 'User',
-                country: 'Israel',
-                password: 'test123!',
-                email: 'test@example.com'
+                username: 'testuser2',
+                firstname: 'Test2',
+                lastname: 'User2',
+                country: 'Israel2',
+                password: 'test123!2',
+                email: 'test@example.com2'
             });
             console.log('✅ Registration successful');
         } catch (error) {
