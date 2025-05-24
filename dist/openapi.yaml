@@ -7,7 +7,7 @@ servers:
   # local:
   - url: "http://127.0.0.1:80"
     # remote:
-    # - url: "http://132.72.65.211"
+    # - url: "http://132.72.65.108"
     description: SwaggerHub API Auto Mocking hey
 tags:
   - name: Auth
