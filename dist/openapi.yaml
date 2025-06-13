@@ -1,30 +1,43 @@
 openapi: 3.0.0
 info:
-  title: Recipes api
-  description: API for recipes project
-  version: 1.0.1
+  title: המתכונים של סבתא ואחרים - Grandma's Recipes and Others API
+  description: Complete API for recipes project including authentication, search, personal area, and bonus features
+  version: 2.0.0
 servers:
-  # local:
   - url: "http://127.0.0.1:80"
-    # remote:
-    # - url: "http://132.72.65.108"
-    description: SwaggerHub API Auto Mocking hey
+    description: Local development server
 tags:
   - name: Auth
-    description: All authentication related routes
-  - name: Users
-    description: All the user's personal app info
+    description: Authentication and authorization
   - name: Recipes
-    description: All reciepes general info
+    description: Recipe search and information
+  - name: Users
+    description: User personal area management
+  - name: Favorites
+    description: User favorite recipes
+  - name: Personal
+    description: User created recipes
+  - name: Family
+    description: Family recipes management
+  - name: Search
+    description: Search functionality and history
+  - name: Filters
+    description: Search filters (cuisines, diets, intolerances)
+  - name: Bonus - Preparation
+    description: Recipe preparation tracking
+  - name: Bonus - Meal Planning
+    description: Meal planning functionality
+
 paths:
+  # Authentication Endpoints
   /register:
     post:
       tags:
         - Auth
-      summary: A new user from the client is added to the server
+      summary: רישום משתמש חדש
       description: A JSON object contains all the details about the new user.
       requestBody:
-        description: Inventory item to add
+        description: User registration data
         content:
           application/json:
             schema:
@@ -35,11 +48,12 @@ paths:
           description: A new user has been added
         "400":
           description: wrong input parameters
+
   /login:
     post:
       tags:
         - Auth
-      summary: Login an exist user
+      summary: התחברות משתמש קיים
       description: An exist user login to the system
       requestBody:
         content:
@@ -49,8 +63,7 @@ paths:
         required: true
       responses:
         "200":
-          description: |
-            User was found in the DB and authenitcated successfully. The session ID is returned in a cookie named `session`.  You should include this cookie in subsequent requests
+          description: User authenticated successfully
           headers:
             Set-Cookie:
               style: simple
@@ -60,89 +73,534 @@ paths:
                 example: session=87s97sdhgf279293f8w0e9
         "401":
           description: Authentication failed
+
   /logout:
     post:
       tags:
         - Auth
-      summary: logout a user from the system and delete his cookie
+      summary: התנתקות משתמש
       responses:
         "200":
-          description: "the user has ben successfully logged out"
-  /users/favorites:
+          description: "the user has been successfully logged out"
+
+  # Recipe Endpoints
+  /recipes/search:
     get:
       tags:
-        - Users
-      summary: Return the favorite recipes that were saved by user
-      description: Get an array of recipes that were saved by a specific user
+        - Recipes
+      summary: חיפוש מתכונים
+      parameters:
+        - name: recipeName
+          in: query
+          schema:
+            type: string
+        - name: cuisine
+          in: query
+          schema:
+            type: string
+        - name: diet
+          in: query
+          schema:
+            type: string
+        - name: intolerance
+          in: query
+          schema:
+            type: string
+        - name: number
+          in: query
+          schema:
+            type: integer
+            default: 5
       responses:
         "200":
-          description: data about the user's favorites recipes returned
+          description: Search results
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: "#/components/schemas/RecipePreview"
-        "401":
-          description: user is not authorized
+
+  /recipes/random:
+    get:
+      tags:
+        - Recipes
+      summary: קבלת מתכונים אקראיים
+      parameters:
+        - name: number
+          in: query
+          schema:
+            type: integer
+            default: 3
+      responses:
+        "200":
+          description: Random recipes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RecipePreview"
+
+  /recipes/{recipeId}:
+    get:
+      tags:
+        - Recipes
+      summary: קבלת פרטי מתכון
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Recipe details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeDetails"
+        "404":
+          description: Recipe not found
+
+  /recipes/{recipeId}/instructions:
+    get:
+      tags:
+        - Recipes
+      summary: קבלת הוראות הכנה
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Recipe instructions
+
+  # Filter Endpoints
+  /filters/cuisines:
+    get:
+      tags:
+        - Filters
+      summary: קבלת רשימת סוגי מטבחים זמינים
+      responses:
+        "200":
+          description: List of available cuisines
+
+  /filters/diets:
+    get:
+      tags:
+        - Filters
+      summary: קבלת רשימת דיאטות זמינות
+      responses:
+        "200":
+          description: List of available diets
+
+  /filters/intolerances:
+    get:
+      tags:
+        - Filters
+      summary: קבלת רשימת אי-סבילויות זמינות
+      responses:
+        "200":
+          description: List of available intolerances
+
+  # User Management Endpoints
+  /users/{userId}/favorites:
+    get:
+      tags:
+        - Favorites
+      summary: קבלת מתכונים מועדפים
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User's favorite recipes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RecipePreview"
       security:
         - cookieAuth: []
+    
     post:
       tags:
-        - Users
-      summary: save recipe in the favorites list of a user
-      description: save recipe in the favorites list of a user
+        - Favorites
+      summary: הוספת מתכון למועדפים
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
       requestBody:
         content:
           application/json:
             schema:
               type: object
               properties:
-                reciepeId:
-                  type: string
-                  description: reciepe's id which the user saved
-                  example: 716429
+                recipeId:
+                  type: integer
       responses:
         "200":
-          description: The Recipe successfully saved as favorite
-        "401":
-          description: user is not authorized
+          description: Recipe added to favorites
       security:
         - cookieAuth: []
-  /recipes/{recipeId}:
-    get:
+
+  /users/{userId}/favorites/{recipeId}:
+    delete:
       tags:
-        - Recipes
-      summary: Return preview details on recipe by his ID
-      description: Return preview details on recipe by his ID
+        - Favorites
+      summary: הסרת מתכון מהמועדפים
       parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
         - name: recipeId
           in: path
-          description: recipe's id
           required: true
-          style: simple
-          explode: false
           schema:
             type: integer
       responses:
         "200":
-          description: data about the recipe
+          description: Recipe removed from favorites
+      security:
+        - cookieAuth: []
+
+  /users/{userId}/viewed:
+    get:
+      tags:
+        - Users
+      summary: קבלת מתכונים שנצפו לאחרונה
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Recently viewed recipes (last 3)
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RecipePreview"
-        "404":
-          description: recipeId is not exists
+                type: array
+                items:
+                  $ref: "#/components/schemas/RecipePreview"
+      security:
+        - cookieAuth: []
+
+  /users/{userId}/recipes:
+    get:
+      tags:
+        - Personal
+      summary: קבלת מתכונים אישיים
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User's personal recipes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserRecipe"
+      security:
+        - cookieAuth: []
+
+    post:
+      tags:
+        - Personal
+      summary: יצירת מתכון אישי חדש
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRecipe"
+      responses:
+        "201":
+          description: Recipe created successfully
+      security:
+        - cookieAuth: []
+
+  /users/{userId}/recipes/{recipeId}:
+    delete:
+      tags:
+        - Personal
+      summary: מחיקת מתכון אישי
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: recipeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Recipe deleted successfully
+      security:
+        - cookieAuth: []
+
+  /users/{userId}/family-recipes:
+    get:
+      tags:
+        - Family
+      summary: קבלת מתכונים משפחתיים
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User's family recipes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FamilyRecipe"
+      security:
+        - cookieAuth: []
+
+    post:
+      tags:
+        - Family
+      summary: יצירת מתכון משפחתי חדש
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFamilyRecipe"
+      responses:
+        "201":
+          description: Family recipe created successfully
+      security:
+        - cookieAuth: []
+
+  /users/{userId}/search/last:
+    get:
+      tags:
+        - Search
+      summary: קבלת החיפוש האחרון של המשתמש
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Last search query
+      security:
+        - cookieAuth: []
+
+  /users/{userId}/recipes/{id}/progress:
+    get:
+      tags:
+        - Bonus - Preparation
+      summary: קבלת התקדמות הכנת מתכון
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Recipe preparation progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeProgress"
+      security:
+        - cookieAuth: []
+
+    put:
+      tags:
+        - Bonus - Preparation
+      summary: עדכון התקדמות הכנת מתכון
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                current_step:
+                  type: integer
+                is_completed:
+                  type: boolean
+                notes:
+                  type: string
+      responses:
+        "200":
+          description: Progress updated successfully
+      security:
+        - cookieAuth: []
+
+  /users/{userId}/meal-plan:
+    get:
+      tags:
+        - Bonus - Meal Planning
+      summary: קבלת תכנון ארוחות
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Meal plan
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MealPlanItem"
+      security:
+        - cookieAuth: []
+
+    post:
+      tags:
+        - Bonus - Meal Planning
+      summary: הוספת פריט לתכנון ארוחות
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMealPlanItem"
+      responses:
+        "201":
+          description: Meal plan item added
+      security:
+        - cookieAuth: []
+
+  /users/{userId}/meal-plan/{itemId}:
+    put:
+      tags:
+        - Bonus - Meal Planning
+      summary: עדכון פריט בתכנון ארוחות
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMealPlanItem"
+      responses:
+        "200":
+          description: Meal plan item updated
+      security:
+        - cookieAuth: []
+
+    delete:
+      tags:
+        - Bonus - Meal Planning
+      summary: מחיקת פריט מתכנון ארוחות
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Meal plan item deleted
+      security:
+        - cookieAuth: []
+
 components:
   schemas:
     User:
       type: object
+      required:
+        - username
+        - firstname
+        - lastname
+        - country
+        - password
+        - email
       properties:
         username:
           maxLength: 8
           minLength: 3
           type: string
-          description: username conatins between 3 to 8 letters only
+          description: username contains between 3 to 8 letters only
           example: my_name
         firstname:
           type: string
@@ -160,38 +618,35 @@ components:
           maxLength: 10
           minLength: 5
           type: string
-          description:
-            password conatins between 5 to 10 chars, at least one of them
-            is a number and a special char
+          description: password contains between 5 to 10 chars, at least one number and special char
           format: password
           example: my_name@12
         email:
-          pattern: email
           type: string
+          format: email
           description: user's email
           example: my_name12@gmail.com
-        # image-url:
-        #   pattern: URL
-        #   type: string
-        #   description: URL for the user's image
-        #   example: https://cloudinary.com/
-      description: Model containing user info
+
     LoginScheme:
       type: object
+      required:
+        - username
+        - password
       properties:
         username:
           maxLength: 8
           minLength: 3
           type: string
-          description: username conatins letters only
+          description: username contains letters only
         password:
           maxLength: 10
           minLength: 5
-          description: password conatins at least one number and one special char
+          description: password contains at least one number and special char
           format: password
       example:
         username: my_name
         password: my_name@12
+
     RecipePreview:
       type: object
       properties:
@@ -210,11 +665,11 @@ components:
           example: https://spoonacular.com/recipeimages/655455-566x370.jpg
         readyInMinutes:
           type: integer
-          description: the time takes to make this recipe
+          description: time to make this recipe
           example: 45
-        popularity:
+        aggregateLikes:
           type: integer
-          description: how many likes got this recipe
+          description: how many likes this recipe got
           example: 5987
         vegetarian:
           type: boolean
@@ -228,3 +683,200 @@ components:
           type: boolean
           description: indication if the recipe is gluten free
           example: false
+
+    RecipeDetails:
+      allOf:
+        - $ref: "#/components/schemas/RecipePreview"
+        - type: object
+          properties:
+            summary:
+              type: string
+              description: recipe summary
+            servings:
+              type: integer
+              description: number of servings
+            extendedIngredients:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  original:
+                    type: string
+                  amount:
+                    type: number
+                  unit:
+                    type: string
+            analyzedInstructions:
+              type: array
+              items:
+                type: object
+
+    UserRecipe:
+      type: object
+      properties:
+        recipe_id:
+          type: integer
+        title:
+          type: string
+        image:
+          type: string
+        readyInMinutes:
+          type: integer
+        servings:
+          type: integer
+        instructions:
+          type: string
+        ingredients:
+          type: string
+        is_vegetarian:
+          type: boolean
+        is_vegan:
+          type: boolean
+        is_gluten_free:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    FamilyRecipe:
+      allOf:
+        - $ref: "#/components/schemas/UserRecipe"
+        - type: object
+          properties:
+            family_origin:
+              type: string
+            family_member:
+              type: string
+            when_to_prepare:
+              type: string
+
+    CreateRecipe:
+      type: object
+      required:
+        - title
+        - instructions
+        - ingredients
+      properties:
+        title:
+          type: string
+        image:
+          type: string
+        readyInMinutes:
+          type: integer
+        servings:
+          type: integer
+        instructions:
+          type: array
+          items:
+            type: string
+        ingredients:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              amount:
+                type: number
+              unit:
+                type: string
+        is_vegetarian:
+          type: boolean
+        is_vegan:
+          type: boolean
+        is_gluten_free:
+          type: boolean
+
+    CreateFamilyRecipe:
+      allOf:
+        - $ref: "#/components/schemas/CreateRecipe"
+        - type: object
+          properties:
+            family_origin:
+              type: string
+            family_member:
+              type: string
+            when_to_prepare:
+              type: string
+
+    RecipeProgress:
+      type: object
+      properties:
+        recipe_id:
+          type: integer
+        current_step:
+          type: integer
+        is_completed:
+          type: boolean
+        notes:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+
+    MealPlanItem:
+      type: object
+      properties:
+        item_id:
+          type: integer
+        recipe_id:
+          type: integer
+        meal_type:
+          type: string
+          enum: [breakfast, lunch, dinner, snack]
+        planned_date:
+          type: string
+          format: date
+        servings:
+          type: integer
+        order_index:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    CreateMealPlanItem:
+      type: object
+      required:
+        - recipe_id
+        - meal_type
+        - planned_date
+      properties:
+        recipe_id:
+          type: integer
+        meal_type:
+          type: string
+          enum: [breakfast, lunch, dinner, snack]
+        planned_date:
+          type: string
+          format: date
+        servings:
+          type: integer
+          default: 1
+        order_index:
+          type: integer
+
+    UpdateMealPlanItem:
+      type: object
+      properties:
+        meal_type:
+          type: string
+          enum: [breakfast, lunch, dinner, snack]
+        planned_date:
+          type: string
+          format: date
+        servings:
+          type: integer
+        order_index:
+          type: integer
+
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session
