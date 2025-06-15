@@ -39,7 +39,12 @@ app.get("/",function(req,res)
 
 });
 
-app.use(cors());
+app.use(cors({
+  origin: true, // Allow all origins, or specify like ['http://localhost:8080']
+  credentials: true, // Important! Allows cookies to be sent with requests
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.options("*", cors());
 
 const corsConfig = {
