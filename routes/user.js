@@ -105,14 +105,17 @@ router.post('/:userId/view', async (req, res, next) => {
  */
 router.post('/:userId/favorites', async (req, res, next) => {
   try {
-    const user_id = req.params.userId;
+    const user_name = req.params.userId;
     const recipe_id = req.body.recipeId;
-    
-    if (user_id != req.session.user_id) {
+    //get from the database the username of the user_id
+    const session_user_name_arr = await DButils.execQuery(`SELECT username FROM users WHERE user_id = '${req.session.user_id}'`);
+    const session_user_name = session_user_name_arr[0].username;
+
+    if (user_name != session_user_name) {
       return res.status(403).send({ message: "Access denied", success: false });
     }
-    
-    await user_utils.markAsFavorite(user_id, recipe_id);
+
+    await user_utils.markAsFavorite(req.session.user_id, recipe_id);
     res.status(200).send({ message: "The Recipe successfully saved as favorite", success: true });
   } catch (error) {
     next(error);
@@ -121,17 +124,39 @@ router.post('/:userId/favorites', async (req, res, next) => {
 
 router.get('/:userId/favorites', async (req, res, next) => {
   try {
-    const user_id = req.params.userId;
-    
-    if (user_id != req.session.user_id) {
+    const user_name = req.params.userId;
+
+    //get from the database the username of the user_id
+    const session_user_name_arr = await DButils.execQuery(`SELECT username FROM users WHERE user_id = '${req.session.user_id}'`);
+    const session_user_name = session_user_name_arr[0].username;
+
+    if (user_name != session_user_name) {
       return res.status(403).send({ message: "Access denied", success: false });
     }
-    
-    const recipes_id = await user_utils.getFavoriteRecipes(user_id);
+
+    const recipes_id = await user_utils.getFavoriteRecipes(req.session.user_id);
     let recipes_id_array = [];
     recipes_id.map((element) => recipes_id_array.push(element.recipe_id));
     const results = await recipe_utils.getRecipesPreview(recipes_id_array);
     res.status(200).send(results);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.delete('/:userId/favorites/:recipeId', async (req, res, next) => {
+  try {
+    const user_name = req.params.userId;
+    const recipe_id = req.params.recipeId;
+    //get from the database the username of the user_id
+    const session_user_name_arr = await DButils.execQuery(`SELECT username FROM users WHERE user_id = '${req.session.user_id}'`);
+    const session_user_name = session_user_name_arr[0].username;
+
+    if (user_name != session_user_name) {
+      return res.status(403).send({ message: "Access denied", success: false });
+    }
+    await user_utils.removeFavorite(req.session.user_id, recipe_id);
+    res.status(200).send({ message: "Recipe removed from favorites", success: true });
   } catch (error) {
     next(error);
   }
