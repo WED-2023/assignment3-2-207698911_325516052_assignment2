@@ -275,6 +275,23 @@ router.post('/:userId/recipes', async (req, res, next) => {
   }
 });
 
+router.get('/:userId/recipes/:recipeId', async (req, res, next) => {
+  try {
+    const recipe_id = req.params.recipeId;
+    const user_name = req.params.userId;
+    //get from the database the username of the user_id
+    const session_user_name_arr = await DButils.execQuery(`SELECT username FROM users WHERE user_id = '${req.session.user_id}'`);
+    const session_user_name = session_user_name_arr[0].username;
+    if (user_name != session_user_name) {
+      return res.status(403).send({ message: "Access denied", success: false });
+    }
+    const recipe = await user_utils.getUserRecipe(req.session.user_id, recipe_id);
+    res.status(200).send(recipe || { message: "Recipe not found", success: false });
+  } catch (error) {
+    next(error);
+  }
+});
+
 /**
  * @swagger
  * /users/{userId}/family-recipes:

@@ -52,7 +52,13 @@ async function getUserRecipes(user_id){
     `);
     return recipes;
 }
-
+async function getUserRecipe(user_id, recipe_id){
+    const recipes = await DButils.execQuery(`
+        SELECT * FROM UserRecipes 
+        WHERE user_id='${user_id}' AND recipe_id=${recipe_id}
+    `);
+    return recipes.length > 0 ? recipes[0] : null;
+}
 async function createUserRecipe(user_id, recipeData){
     const { title, image, readyInMinutes, vegan, vegetarian, glutenFree, ingredients, instructions, servings } = recipeData;
     
@@ -186,6 +192,7 @@ exports.getFavoriteRecipes = getFavoriteRecipes;
 exports.markAsViewed = markAsViewed;
 exports.getViewedRecipes = getViewedRecipes;
 exports.getUserRecipes = getUserRecipes;
+exports.getUserRecipe = getUserRecipe;
 exports.createUserRecipe = createUserRecipe;
 exports.deleteUserRecipe = deleteUserRecipe;
 exports.getFamilyRecipes = getFamilyRecipes;
