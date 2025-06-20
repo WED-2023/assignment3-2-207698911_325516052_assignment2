@@ -181,14 +181,95 @@ router.delete('/:userId/favorites/:recipeId', async (req, res, next) => {
  */
 router.get('/:userId/recipes', async (req, res, next) => {
   try {
-    const user_id = req.params.userId;
-    
-    if (user_id != req.session.user_id) {
+     const user_name = req.params.userId;
+    //get from the database the username of the user_id
+    const session_user_name_arr = await DButils.execQuery(`SELECT username FROM users WHERE user_id = '${req.session.user_id}'`);
+    const session_user_name = session_user_name_arr[0].username;
+    if (user_name != session_user_name) {
       return res.status(403).send({ message: "Access denied", success: false });
     }
-    
-    const recipes = await user_utils.getUserRecipes(user_id);
+
+    const recipes = await user_utils.getUserRecipes(req.session.user_id);
     res.status(200).send(recipes);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /users/{userId}/recipes:
+ *   post:
+ *     tags:
+ *       - Personal Area
+ *     summary: יצירת מתכון אישי חדש
+  *     parameters:
+  *       - name: userId
+  *         in: path
+  *         required: true
+  *         schema:
+  *           type: integer
+  *       - name: recipe
+  *         in: body
+  *         required: true
+  *         schema:
+  *           type: object
+  *           properties:
+  *             title:
+  *               type: string
+  *             image:
+  *               type: string
+  *             readyInMinutes:
+  *               type: integer
+  *             servings:
+  *               type: integer
+  *             instructions:
+  *               type: array
+  *               items:
+  *                 type: string
+  *             ingredients:
+  *               type: array
+  *               items:
+  *                 type: string
+  *             is_vegetarian:
+  *               type: boolean
+  *             is_vegan:
+  *               type: boolean
+  *             is_gluten_free:
+  *               type: boolean
+  *          responses:
+  *          201:
+  *           description: Recipe created successfully
+  * */
+
+router.post('/:userId/recipes', async (req, res, next) => {
+  try {
+    const user_name = req.params.userId;
+    //get from the database the username of the user_id
+    const session_user_name_arr = await DButils.execQuery(`SELECT username FROM users WHERE user_id = '${req.session.user_id}'`);
+    const session_user_name = session_user_name_arr[0].username;
+    if (user_name != session_user_name) {
+      return res.status(403).send({ message: "Access denied", success: false });
+    }
+    const { title, image, readyInMinutes, servings, instructions, ingredients, is_vegetarian, is_vegan, is_gluten_free } = req.body;
+    if (!title || !instructions || !ingredients) {
+      return res.status(400).send({ message: "Missing required fields: title, instructions, ingredients", success: false });
+    }
+    
+    const recipeData = {
+      title,
+      image: image || '',
+      readyInMinutes,
+      vegan: is_vegan || false,
+      vegetarian: is_vegetarian || false,
+      glutenFree: is_gluten_free || false,
+      ingredients,
+      instructions,
+      servings
+    };
+    
+    const recipe_id = await user_utils.createUserRecipe(req.session.user_id, recipeData);
+    res.status(201).send({ message: "Recipe created successfully", recipe_id });
   } catch (error) {
     next(error);
   }
