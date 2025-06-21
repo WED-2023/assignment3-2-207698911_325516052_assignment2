@@ -125,9 +125,9 @@ router.get("/:recipeId", async (req, res, next) => {
     const recipe = await recipes_utils.getRecipeDetails(req.params.recipeId);
     
     // Mark as viewed if user is logged in
-    if (req.session && req.session.user_id) {
-      await user_utils.markAsViewed(req.session.user_id, req.params.recipeId);
-    }
+    // if (req.session && req.session.user_id) {
+    //   await user_utils.markAsViewed(req.session.user_id, req.params.recipeId);
+    // }
     
     res.send(recipe);
   } catch (error) {
