@@ -22,67 +22,67 @@ router.use(async function (req, res, next) {
   }
 });
 
-/**
- * @swagger
- * /users/{userId}/view:
- *   post:
- *     tags:
- *       - User
- *     summary: סימון מתכון כנצפה
- *     parameters:
- *       - name: userId
- *         in: path
- *         required: true
- *         schema:
- *           type: integer
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               recipeId:
- *                 type: integer
- *     responses:
- *       200:
- *         description: Recipe marked as viewed
- */
-router.post('/:userId/view', async (req, res, next) => {
-  try {
-    const user_id = req.params.userId;
-    const recipe_id = req.body.recipeId;
+// /**
+//  * @swagger
+//  * /users/{userId}/view:
+//  *   post:
+//  *     tags:
+//  *       - User
+//  *     summary: סימון מתכון כנצפה
+//  *     parameters:
+//  *       - name: userId
+//  *         in: path
+//  *         required: true
+//  *         schema:
+//  *           type: integer
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *         application/json:
+//  *           schema:
+//  *             type: object
+//  *             properties:
+//  *               recipeId:
+//  *                 type: integer
+//  *     responses:
+//  *       200:
+//  *         description: Recipe marked as viewed
+//  */
+// router.post('/:userId/view', async (req, res, next) => {
+//   try {
+//     const user_id = req.params.userId;
+//     const recipe_id = req.body.recipeId;
     
-    if (user_id != req.session.user_id) {
-      return res.status(403).send({ message: "Access denied", success: false });
-    }
+//     if (user_id != req.session.user_id) {
+//       return res.status(403).send({ message: "Access denied", success: false });
+//     }
     
-    await user_utils.markAsViewed(user_id, recipe_id);
-    res.status(200).send({ message: "Recipe marked as viewed", success: true });
-  } catch (error) {
-    next(error);
-  }
-});
-router.get('/:userId/view', async (req, res, next) => {
-  try {
-    const username = req.params.userId;
-    //get from the database the username of the user_id
-    const session_user_name_arr = await DButils.execQuery(`SELECT username FROM users WHERE user_id = '${req.session.user_id}'`);
-    const session_user_name = session_user_name_arr[0].username;
+//     await user_utils.markAsViewed(user_id, recipe_id);
+//     res.status(200).send({ message: "Recipe marked as viewed", success: true });
+//   } catch (error) {
+//     next(error);
+//   }
+// });
+// router.get('/:userId/view', async (req, res, next) => {
+//   try {
+//     const username = req.params.userId;
+//     //get from the database the username of the user_id
+//     const session_user_name_arr = await DButils.execQuery(`SELECT username FROM users WHERE user_id = '${req.session.user_id}'`);
+//     const session_user_name = session_user_name_arr[0].username;
 
-    if (username != session_user_name) {
-      return res.status(403).send({ message: "Access denied", success: false });
-    }
+//     if (username != session_user_name) {
+//       return res.status(403).send({ message: "Access denied", success: false });
+//     }
 
-    const viewedRecipesData = await user_utils.getViewedRecipes(req.session.user_id);
-    let recipes_id_array = [];
-    viewedRecipesData.map((element) => recipes_id_array.push(element.recipe_id));
-    const results = await recipe_utils.getRecipesPreview(recipes_id_array);
-    res.status(200).send(results);
-  } catch (error) {
-    next(error);
-  }
-});
+//     const viewedRecipesData = await user_utils.getViewedRecipes(req.session.user_id);
+//     let recipes_id_array = [];
+//     viewedRecipesData.map((element) => recipes_id_array.push(element.recipe_id));
+//     const results = await recipe_utils.getRecipesPreview(recipes_id_array);
+//     res.status(200).send(results);
+//   } catch (error) {
+//     next(error);
+//   }
+// });
 
 /**
  * @swagger

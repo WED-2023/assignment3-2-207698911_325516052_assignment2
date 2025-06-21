@@ -314,26 +314,26 @@ async function getFavoriteRecipes(user_id){
     return recipes_id;
 }
 
-async function markAsViewed(user_id, recipe_id){
-    // First, remove if already exists to update the timestamp
-    await DButils.execQuery(`DELETE FROM UserViewedRecipes WHERE user_id='${user_id}' AND recipe_id=${recipe_id}`);
-    // Then add/re-add the viewed recipe
-    await DButils.execQuery(`INSERT INTO UserViewedRecipes (user_id, recipe_id) VALUES ('${user_id}', ${recipe_id})`);
+// async function markAsViewed(user_id, recipe_id){
+//     // First, remove if already exists to update the timestamp
+//     await DButils.execQuery(`DELETE FROM UserViewedRecipes WHERE user_id='${user_id}' AND recipe_id=${recipe_id}`);
+//     // Then add/re-add the viewed recipe
+//     await DButils.execQuery(`INSERT INTO UserViewedRecipes (user_id, recipe_id) VALUES ('${user_id}', ${recipe_id})`);
     
-    // Keep only the last 3 viewed recipes per user
-    await DButils.execQuery(`
-        DELETE FROM UserViewedRecipes 
-        WHERE user_id='${user_id}' 
-        AND recipe_id NOT IN (
-            SELECT recipe_id FROM (
-                SELECT recipe_id FROM UserViewedRecipes 
-                WHERE user_id='${user_id}' 
-                ORDER BY viewed_at DESC 
-                LIMIT 3
-            ) as t
-        )
-    `);
-}
+//     // Keep only the last 3 viewed recipes per user
+//     await DButils.execQuery(`
+//         DELETE FROM UserViewedRecipes 
+//         WHERE user_id='${user_id}' 
+//         AND recipe_id NOT IN (
+//             SELECT recipe_id FROM (
+//                 SELECT recipe_id FROM UserViewedRecipes 
+//                 WHERE user_id='${user_id}' 
+//                 ORDER BY viewed_at DESC 
+//                 LIMIT 3
+//             ) as t
+//         )
+//     `);
+// }
 
 async function getViewedRecipes(user_id){
     const recipes = await DButils.execQuery(`
@@ -505,7 +505,7 @@ async function deleteFamilyRecipe(user_id, recipe_id){
 exports.markAsFavorite = markAsFavorite;
 exports.removeFavorite = removeFavorite;
 exports.getFavoriteRecipes = getFavoriteRecipes;
-exports.markAsViewed = markAsViewed;
+// exports.markAsViewed = markAsViewed;
 exports.getViewedRecipes = getViewedRecipes;
 exports.getUserRecipes = getUserRecipes;
 exports.getUserRecipe = getUserRecipe;
