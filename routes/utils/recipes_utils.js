@@ -17,9 +17,9 @@ async function getRecipeInformation(recipe_id) {
         });
         
         // Log the structure of the first ingredient to understand API format
-        if (response.data && response.data.extendedIngredients && response.data.extendedIngredients.length > 0) {
-            console.log("API raw ingredient structure:", JSON.stringify(response.data.extendedIngredients[0], null, 2));
-        }
+        // if (response.data && response.data.extendedIngredients && response.data.extendedIngredients.length > 0) {
+        //     console.log("API raw ingredient structure:", JSON.stringify(response.data.extendedIngredients[0], null, 2));
+        // }
         
         return response;
     } catch (error) {
