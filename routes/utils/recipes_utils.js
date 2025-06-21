@@ -3,17 +3,25 @@ const api_domain = "https://api.spoonacular.com/recipes";
 const api_key = process.env.spooncular_apiKey;
 
 /**
- * Get recipes list from spoonacular response and extract the relevant recipe data for preview
- * @param {*} recipes_info 
+ * Get recipe information from Spoonacular API
+ * @param {number} recipe_id - Recipe ID
+ * @returns {Promise<Object>} Axios response with recipe information
  */
 async function getRecipeInformation(recipe_id) {
     try {
-        return await axios.get(`${api_domain}/${recipe_id}/information`, {
+        const response = await axios.get(`${api_domain}/${recipe_id}/information`, {
             params: {
                 includeNutrition: false,
                 apiKey: api_key
             }
         });
+        
+        // Log the structure of the first ingredient to understand API format
+        if (response.data && response.data.extendedIngredients && response.data.extendedIngredients.length > 0) {
+            console.log("API raw ingredient structure:", JSON.stringify(response.data.extendedIngredients[0], null, 2));
+        }
+        
+        return response;
     } catch (error) {
         console.error(`Error fetching recipe information for ID ${recipe_id}:`, error.message);
         throw error;

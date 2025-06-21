@@ -1,5 +1,306 @@
 const DButils = require("./DButils");
 
+// Transform database recipe to match API format
+async function transformUserRecipe(dbRecipe) {
+    // Parse ingredients and instructions if they're stored as strings
+    let ingredients = dbRecipe.ingredients;
+    let instructions = dbRecipe.instructions;
+    
+    try {
+        if (typeof ingredients === 'string') {
+            ingredients = JSON.parse(ingredients);
+        }
+        
+        // Ensure ingredients match the extendedIngredients format from the API
+        if (Array.isArray(ingredients)) {
+            // If ingredients is an array of strings, convert to extendedIngredients format
+            if (ingredients.length > 0 && typeof ingredients[0] === 'string') {
+                ingredients = ingredients.map((ingredient, index) => ({
+                    id: index,
+                    name: ingredient,
+                    original: ingredient,
+                    originalName: ingredient,
+                    amount: 1,
+                    unit: '',
+                    aisle: '',
+                    consistency: 'solid',
+                    image: '',
+                    meta: [],
+                    metaInformation: [],
+                    measures: {
+                        us: { amount: 1, unitShort: '', unitLong: '' },
+                        metric: { amount: 1, unitShort: '', unitLong: '' }
+                    }
+                }));
+            } 
+            // If ingredients is an array of objects but missing key properties
+            else if (ingredients.length > 0 && typeof ingredients[0] === 'object') {
+                ingredients = ingredients.map((ingredient, index) => {
+                    // Check if the ingredient already has the complete structure needed
+                    if (ingredient.id && ingredient.name && ingredient.original && 
+                        ingredient.measures && ingredient.measures.us && ingredient.measures.metric) {
+                        return ingredient;
+                    }
+                    
+                    // Start with existing properties
+                    const enhancedIngredient = { ...ingredient };
+                    
+                    // Ensure all required properties exist
+                    if (!enhancedIngredient.id) enhancedIngredient.id = index;
+                    if (!enhancedIngredient.name) enhancedIngredient.name = ingredient.original || ingredient.originalName || "Ingredient";
+                    if (!enhancedIngredient.original) enhancedIngredient.original = ingredient.name || "Ingredient";
+                    if (!enhancedIngredient.originalName) enhancedIngredient.originalName = enhancedIngredient.name;
+                    if (enhancedIngredient.amount === undefined) enhancedIngredient.amount = 1;
+                    if (!enhancedIngredient.unit) enhancedIngredient.unit = '';
+                    if (!enhancedIngredient.aisle) enhancedIngredient.aisle = '';
+                    if (!enhancedIngredient.consistency) enhancedIngredient.consistency = 'solid';
+                    if (!enhancedIngredient.image) enhancedIngredient.image = '';
+                    if (!enhancedIngredient.meta) enhancedIngredient.meta = [];
+                    if (!enhancedIngredient.metaInformation) enhancedIngredient.metaInformation = [];
+                    
+                    // Create measures object if it doesn't exist
+                    if (!enhancedIngredient.measures) {
+                        enhancedIngredient.measures = {
+                            us: { 
+                                amount: enhancedIngredient.amount, 
+                                unitShort: enhancedIngredient.unit, 
+                                unitLong: enhancedIngredient.unit 
+                            },
+                            metric: { 
+                                amount: enhancedIngredient.amount, 
+                                unitShort: enhancedIngredient.unit, 
+                                unitLong: enhancedIngredient.unit 
+                            }
+                        };
+                    } else {
+                        // Make sure both us and metric exist
+                        if (!enhancedIngredient.measures.us) {
+                            enhancedIngredient.measures.us = {
+                                amount: enhancedIngredient.amount,
+                                unitShort: enhancedIngredient.unit,
+                                unitLong: enhancedIngredient.unit
+                            };
+                        }
+                        if (!enhancedIngredient.measures.metric) {
+                            enhancedIngredient.measures.metric = {
+                                amount: enhancedIngredient.amount,
+                                unitShort: enhancedIngredient.unit,
+                                unitLong: enhancedIngredient.unit
+                            };
+                        }
+                    }
+                    
+                    return enhancedIngredient;
+                });
+            }
+        } else {
+            // If ingredients is not an array, create an empty array
+            ingredients = [];
+        }
+    } catch (error) {
+        console.error("Error processing ingredients:", error);
+        ingredients = []; // Fallback to empty array if parsing fails
+    }
+    
+    try {
+        if (typeof instructions === 'string') {
+            instructions = JSON.parse(instructions);
+        }
+        
+        // If instructions is not in the expected format, transform it
+        // API format typically has analyzedInstructions as an array with objects containing steps
+        if (!Array.isArray(instructions) || 
+            (instructions.length > 0 && !instructions[0].steps)) {
+            // Convert to API format
+            if (Array.isArray(instructions) && typeof instructions[0] === 'string') {
+                instructions = [{
+                    name: "",
+                    steps: instructions.map((step, index) => ({
+                        number: index + 1,
+                        step: step
+                    }))
+                }];
+            } else if (Array.isArray(instructions) && instructions[0].number) {
+                // If it's already an array of step objects, wrap it in the expected structure
+                instructions = [{
+                    name: "",
+                    steps: instructions
+                }];
+            }
+        }
+    } catch (error) {
+        console.error("Error parsing instructions:", error);
+        instructions = []; // Fallback to empty array if parsing fails
+    }
+    
+    // Match format of recipes from the API (getRecipeDetails in recipes_utils.js)
+    return {
+        id: dbRecipe.recipe_id,
+        title: dbRecipe.title,
+        readyInMinutes: dbRecipe.readyInMinutes,
+        image: dbRecipe.image,
+        popularity: 0, // User recipes don't have aggregateLikes/popularity
+        vegan: dbRecipe.vegan === 1,
+        vegetarian: dbRecipe.vegetarian === 1,
+        glutenFree: dbRecipe.glutenFree === 1,
+        ingredients: ingredients, // This should be an array matching extendedIngredients
+        instructions: instructions, // This should match analyzedInstructions format
+        servings: dbRecipe.servings
+    };
+}
+
+// Transform family recipe to match API format
+async function transformFamilyRecipe(dbRecipe) {
+    // Parse ingredients and instructions if they're stored as strings
+    let ingredients = dbRecipe.ingredients;
+    let instructions = dbRecipe.instructions;
+    
+    try {
+        if (typeof ingredients === 'string') {
+            ingredients = JSON.parse(ingredients);
+        }
+        
+        // Ensure ingredients match the extendedIngredients format from the API
+        if (Array.isArray(ingredients)) {
+            // If ingredients is an array of strings, convert to extendedIngredients format
+            if (ingredients.length > 0 && typeof ingredients[0] === 'string') {
+                ingredients = ingredients.map((ingredient, index) => ({
+                    id: index,
+                    name: ingredient,
+                    original: ingredient,
+                    originalName: ingredient,
+                    amount: 1,
+                    unit: '',
+                    aisle: '',
+                    consistency: 'solid',
+                    image: '',
+                    meta: [],
+                    metaInformation: [],
+                    measures: {
+                        us: { amount: 1, unitShort: '', unitLong: '' },
+                        metric: { amount: 1, unitShort: '', unitLong: '' }
+                    }
+                }));
+            } 
+            // If ingredients is an array of objects but missing key properties
+            else if (ingredients.length > 0 && typeof ingredients[0] === 'object') {
+                ingredients = ingredients.map((ingredient, index) => {
+                    // Check if the ingredient already has the complete structure needed
+                    if (ingredient.id && ingredient.name && ingredient.original && 
+                        ingredient.measures && ingredient.measures.us && ingredient.measures.metric) {
+                        return ingredient;
+                    }
+                    
+                    // Start with existing properties
+                    const enhancedIngredient = { ...ingredient };
+                    
+                    // Ensure all required properties exist
+                    if (!enhancedIngredient.id) enhancedIngredient.id = index;
+                    if (!enhancedIngredient.name) enhancedIngredient.name = ingredient.original || ingredient.originalName || "Ingredient";
+                    if (!enhancedIngredient.original) enhancedIngredient.original = ingredient.name || "Ingredient";
+                    if (!enhancedIngredient.originalName) enhancedIngredient.originalName = enhancedIngredient.name;
+                    if (enhancedIngredient.amount === undefined) enhancedIngredient.amount = 1;
+                    if (!enhancedIngredient.unit) enhancedIngredient.unit = '';
+                    if (!enhancedIngredient.aisle) enhancedIngredient.aisle = '';
+                    if (!enhancedIngredient.consistency) enhancedIngredient.consistency = 'solid';
+                    if (!enhancedIngredient.image) enhancedIngredient.image = '';
+                    if (!enhancedIngredient.meta) enhancedIngredient.meta = [];
+                    if (!enhancedIngredient.metaInformation) enhancedIngredient.metaInformation = [];
+                    
+                    // Create measures object if it doesn't exist
+                    if (!enhancedIngredient.measures) {
+                        enhancedIngredient.measures = {
+                            us: { 
+                                amount: enhancedIngredient.amount, 
+                                unitShort: enhancedIngredient.unit, 
+                                unitLong: enhancedIngredient.unit 
+                            },
+                            metric: { 
+                                amount: enhancedIngredient.amount, 
+                                unitShort: enhancedIngredient.unit, 
+                                unitLong: enhancedIngredient.unit 
+                            }
+                        };
+                    } else {
+                        // Make sure both us and metric exist
+                        if (!enhancedIngredient.measures.us) {
+                            enhancedIngredient.measures.us = {
+                                amount: enhancedIngredient.amount,
+                                unitShort: enhancedIngredient.unit,
+                                unitLong: enhancedIngredient.unit
+                            };
+                        }
+                        if (!enhancedIngredient.measures.metric) {
+                            enhancedIngredient.measures.metric = {
+                                amount: enhancedIngredient.amount,
+                                unitShort: enhancedIngredient.unit,
+                                unitLong: enhancedIngredient.unit
+                            };
+                        }
+                    }
+                    
+                    return enhancedIngredient;
+                });
+            }
+        } else {
+            // If ingredients is not an array, create an empty array
+            ingredients = [];
+        }
+    } catch (error) {
+        console.error("Error processing ingredients:", error);
+        ingredients = []; // Fallback to empty array if parsing fails
+    }
+    
+    try {
+        if (typeof instructions === 'string') {
+            instructions = JSON.parse(instructions);
+        }
+        
+        // If instructions is not in the expected format, transform it
+        // API format typically has analyzedInstructions as an array with objects containing steps
+        if (!Array.isArray(instructions) || 
+            (instructions.length > 0 && !instructions[0].steps)) {
+            // Convert to API format
+            if (Array.isArray(instructions) && typeof instructions[0] === 'string') {
+                instructions = [{
+                    name: "",
+                    steps: instructions.map((step, index) => ({
+                        number: index + 1,
+                        step: step
+                    }))
+                }];
+            } else if (Array.isArray(instructions) && instructions[0].number) {
+                // If it's already an array of step objects, wrap it in the expected structure
+                instructions = [{
+                    name: "",
+                    steps: instructions
+                }];
+            }
+        }
+    } catch (error) {
+        console.error("Error parsing instructions:", error);
+        instructions = []; // Fallback to empty array if parsing fails
+    }
+    
+    return {
+        id: dbRecipe.recipe_id,
+        title: dbRecipe.title,
+        readyInMinutes: dbRecipe.readyInMinutes,
+        image: dbRecipe.image,
+        popularity: 0, // Family recipes don't have popularity metrics
+        vegan: false, // Default values for dietary restrictions (modify if needed)
+        vegetarian: false,
+        glutenFree: false,
+        ingredients: ingredients,
+        instructions: instructions,
+        servings: dbRecipe.servings,
+        // Family recipe specific fields
+        author: dbRecipe.author,
+        occasion: dbRecipe.occasion,
+        story: dbRecipe.story
+    };
+}
+
 async function markAsFavorite(user_id, recipe_id){
     await DButils.execQuery(`INSERT IGNORE INTO FavoriteRecipes (user_id, recipe_id) VALUES ('${user_id}', ${recipe_id})`);
 }
@@ -50,14 +351,26 @@ async function getUserRecipes(user_id){
         WHERE user_id='${user_id}' 
         ORDER BY created_at DESC
     `);
-    return recipes;
+    
+    // Transform each recipe to match the API format
+    const transformedRecipes = await Promise.all(recipes.map(recipe => transformUserRecipe(recipe)));
+    
+    return transformedRecipes;
 }
 async function getUserRecipe(user_id, recipe_id){
     const recipes = await DButils.execQuery(`
         SELECT * FROM UserRecipes 
         WHERE user_id='${user_id}' AND recipe_id=${recipe_id}
     `);
-    return recipes.length > 0 ? recipes[0] : null;
+    
+    if (recipes.length > 0) {
+        // Transform the recipe to match the API format
+        const transformedRecipe = await transformUserRecipe(recipes[0]);
+        
+        
+        return transformedRecipe;
+    }
+    return null;
 }
 async function createUserRecipe(user_id, recipeData){
     const { title, image, readyInMinutes, vegan, vegetarian, glutenFree, ingredients, instructions, servings } = recipeData;
@@ -76,7 +389,10 @@ async function getFamilyRecipes(user_id){
         WHERE user_id='${user_id}' 
         ORDER BY created_at DESC
     `);
-    return recipes;
+    
+    // Transform each recipe to match the API format
+    const transformedRecipes = await Promise.all(recipes.map(recipe => transformFamilyRecipe(recipe)));
+    return transformedRecipes;
 }
 
 async function createFamilyRecipe(user_id, recipeData){
@@ -206,5 +522,6 @@ exports.getMealPlan = getMealPlan;
 exports.addToMealPlan = addToMealPlan;
 exports.removeMealPlanItem = removeMealPlanItem;
 exports.updateMealPlanItem = updateMealPlanItem;
-exports.deleteUserRecipe = deleteUserRecipe;
-exports.deleteFamilyRecipe = deleteFamilyRecipe;
+exports.transformUserRecipe = transformUserRecipe;
+exports.transformFamilyRecipe = transformFamilyRecipe;
+

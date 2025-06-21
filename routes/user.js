@@ -63,6 +63,26 @@ router.post('/:userId/view', async (req, res, next) => {
     next(error);
   }
 });
+router.get('/:userId/view', async (req, res, next) => {
+  try {
+    const username = req.params.userId;
+    //get from the database the username of the user_id
+    const session_user_name_arr = await DButils.execQuery(`SELECT username FROM users WHERE user_id = '${req.session.user_id}'`);
+    const session_user_name = session_user_name_arr[0].username;
+
+    if (username != session_user_name) {
+      return res.status(403).send({ message: "Access denied", success: false });
+    }
+
+    const viewedRecipesData = await user_utils.getViewedRecipes(req.session.user_id);
+    let recipes_id_array = [];
+    viewedRecipesData.map((element) => recipes_id_array.push(element.recipe_id));
+    const results = await recipe_utils.getRecipesPreview(recipes_id_array);
+    res.status(200).send(results);
+  } catch (error) {
+    next(error);
+  }
+});
 
 /**
  * @swagger
